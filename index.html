@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Terroir Export — Plateforme de gestion export</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --deep:#085041;--mid:#0F6E56;--light:#1D9E75;
+  --gold:#C9973A;--goldL:#E8B86D;
+  --cream:#FAF7F2;--sand:#F0E8D8;
+  --dark:#1C1A17;--mid2:#4A4640;--light2:#7A7570;
+  --coral:#C05030;--coralL:#FAECE7;
+  --border:rgba(8,80,65,.15);
+  --blue:#1a5fa8;--warn:#b87300;--warnL:#fff3dc;
+}
+body{font-family:Georgia,serif;background:var(--cream);color:var(--dark);display:flex;min-height:100vh;}
+#sidebar{width:220px;min-height:100vh;background:var(--deep);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;border-right:1px solid rgba(255,255,255,.07);z-index:100;}
+.sidebar-logo{padding:1.4rem 1.2rem 1rem;border-bottom:1px solid rgba(255,255,255,.08);}
+.sidebar-logo .name{font-size:1.3rem;font-weight:700;color:#FAF7F2;letter-spacing:2px;}
+.sidebar-logo .sub{font-size:.95rem;font-style:italic;color:var(--gold);}
+.sidebar-logo .desc{font-size:.68rem;color:rgba(250,247,242,.35);letter-spacing:1px;margin-top:4px;}
+.nav-links{flex:1;padding:1rem 0;overflow-y:auto;}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:.7rem 1.2rem;background:transparent;border:none;border-left:3px solid transparent;color:rgba(250,247,242,.55);cursor:pointer;font-size:.82rem;letter-spacing:.5px;font-family:Georgia,serif;text-align:left;transition:all .2s;}
+.nav-btn:hover{background:rgba(255,255,255,.05);color:rgba(250,247,242,.85);}
+.nav-btn.active{background:rgba(201,151,58,.15);border-left-color:var(--gold);color:#FAF7F2;font-weight:700;}
+.nav-badge{margin-left:auto;background:var(--coral);color:white;border-radius:10px;padding:1px 7px;font-size:.68rem;display:none;}
+.sidebar-footer{padding:1rem 1.2rem;border-top:1px solid rgba(255,255,255,.08);}
+.sidebar-footer p{font-size:.72rem;color:rgba(250,247,242,.3);line-height:1.6;}
+#main{margin-left:220px;flex:1;padding:2rem 2.5rem;min-height:100vh;}
+.page{display:none;}
+.page.active{display:block;}
+.page-title{font-size:1.8rem;font-weight:700;color:var(--dark);margin-bottom:.3rem;}
+.page-sub{color:var(--light2);font-size:.88rem;font-family:sans-serif;margin-bottom:2rem;}
+#toast{position:fixed;top:20px;right:20px;z-index:999;background:var(--mid);color:white;padding:.75rem 1.5rem;border-radius:6px;font-size:.88rem;font-family:sans-serif;font-weight:500;display:none;}
+.card{background:white;border-radius:8px;border:1px solid var(--border);}
+.card-body{padding:1.4rem;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:.8rem;}
+.stat-card{background:white;border-radius:8px;border:1px solid var(--border);padding:1.2rem;}
+.stat-val{font-size:1.9rem;font-weight:700;display:block;font-family:Georgia,serif;}
+.stat-lbl{font-size:.78rem;font-weight:600;color:var(--dark);margin-top:2px;font-family:sans-serif;}
+.stat-hint{font-size:.72rem;color:var(--light2);font-family:sans-serif;}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:500;letter-spacing:.5px;font-family:sans-serif;}
+.b-analyse{background:#e8f0fb;color:#1a5fa8;border:1px solid #1a5fa8;}
+.b-encours{background:#e1f5ee;color:#0F6E56;border:1px solid #1D9E75;}
+.b-logistique{background:#fff3dc;color:#b87300;border:1px solid #C9973A;}
+.b-exporte{background:#d4edda;color:#155724;border:1px solid #28a745;}
+.b-suspendu{background:#FAECE7;color:#C05030;border:1px solid #C05030;}
+.prog-wrap{display:flex;gap:3px;}
+.prog-seg{flex:1;height:6px;border-radius:3px;background:rgba(0,0,0,.1);}
+.prog-seg.on{background:var(--light);}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--deep);}
+thead th{padding:.65rem 1rem;text-align:left;font-size:.72rem;letter-spacing:.5px;text-transform:uppercase;color:rgba(250,247,242,.7);font-weight:400;font-family:sans-serif;}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+tbody tr:hover{background:var(--sand);}
+tbody tr.sel{background:#e1f5ee;border-left:3px solid var(--light);}
+tbody td{padding:.75rem 1rem;font-size:.83rem;font-family:sans-serif;}
+.td-main{font-weight:600;color:var(--dark);}
+.td-sub{font-size:.72rem;color:var(--light2);margin-top:2px;}
+.btn{border:none;cursor:pointer;font-family:sans-serif;font-weight:500;border-radius:4px;transition:all .2s;display:inline-flex;align-items:center;gap:5px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.bp{background:var(--mid);color:#FAF7F2;padding:.6rem 1.4rem;font-size:.85rem;}
+.bp:hover:not(:disabled){background:var(--light);}
+.bg{background:var(--gold);color:var(--deep);padding:.6rem 1.4rem;font-size:.85rem;font-weight:700;}
+.bg:hover:not(:disabled){background:var(--goldL);}
+.bo{background:transparent;color:var(--mid);border:1px solid var(--mid);padding:.55rem 1.2rem;font-size:.83rem;}
+.bo:hover:not(:disabled){background:var(--sand);}
+.bd{background:#fde8e8;color:var(--coral);border:1px solid var(--coral);padding:.5rem .9rem;font-size:.8rem;}
+.bd:hover:not(:disabled){background:#fcd0d0;}
+.bsm{padding:.32rem .8rem;font-size:.75rem;}
+.fg{margin-bottom:1rem;}
+.fg label{display:block;font-size:.78rem;color:var(--mid2);font-weight:500;letter-spacing:.5px;margin-bottom:4px;font-family:sans-serif;}
+.fg .req{color:var(--coral);}
+.fg input,.fg select,.fg textarea{width:100%;padding:.55rem .8rem;border:1px solid var(--border);border-radius:4px;font-family:sans-serif;font-size:.88rem;background:white;color:var(--dark);outline:none;transition:border .2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--light);}
+.fg textarea{resize:vertical;min-height:80px;}
+.ferr{color:var(--coral);font-size:.75rem;font-family:sans-serif;margin-top:3px;}
+#modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;}
+#modal-ov.open{display:flex;}
+#modal-box{background:white;border-radius:10px;padding:2rem;width:540px;max-height:88vh;overflow-y:auto;}
+#modal-box h3{font-size:1.3rem;font-weight:700;color:var(--dark);margin-bottom:1.5rem;}
+#det-panel{width:380px;background:white;border-radius:8px;border:1px solid var(--border);padding:1.4rem;height:fit-content;display:none;}
+#det-panel.open{display:block;}
+.det-row{display:flex;justify-content:space-between;padding:.42rem 0;border-bottom:1px solid var(--border);}
+.det-lbl{font-size:.78rem;color:var(--light2);font-family:sans-serif;}
+.det-val{font-size:.82rem;font-weight:600;color:var(--dark);font-family:sans-serif;}
+.step-bar{display:flex;border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+.ss{flex:1;padding:.4rem .5rem;text-align:center;font-size:.68rem;font-family:sans-serif;border-right:1px solid var(--border);}
+.ss:last-child{border-right:none;}
+.ss.sdone{background:var(--light);color:white;font-weight:600;}
+.ss.scur{background:var(--gold);color:white;font-weight:700;}
+.ss.sfut{background:var(--sand);color:var(--light2);}
+.mc{background:white;border-radius:8px;border:2px solid var(--border);padding:1.4rem;cursor:pointer;transition:all .2s;}
+.mc:hover{border-color:var(--gold);}
+.mc.mopen{border-color:var(--gold);}
+.mdet{display:none;border-top:1px solid var(--border);margin-top:1rem;padding-top:1rem;}
+.mc.mopen .mdet{display:block;}
+.ci{display:flex;align-items:center;gap:10px;padding:.45rem 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.ci input{accent-color:var(--mid);width:15px;height:15px;cursor:pointer;flex-shrink:0;}
+.ci span{font-size:.83rem;font-family:sans-serif;transition:all .2s;}
+.ci.ck span{text-decoration:line-through;color:var(--light2);}
+.bar-row{margin-bottom:8px;}
+.bar-info{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:3px;font-family:sans-serif;}
+.bar-track{background:var(--sand);border-radius:4px;height:6px;}
+.bar-fill{background:var(--light);height:6px;border-radius:4px;transition:width .5s;}
+.sec-tag{font-size:.72rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--mid);font-weight:700;margin-bottom:.7rem;font-family:sans-serif;}
+.succ{text-align:center;padding:4rem 2rem;}
+.succ .si{font-size:3.5rem;margin-bottom:1rem;}
+.succ h3{font-size:1.5rem;color:var(--mid);margin-bottom:.5rem;}
+.succ p{color:var(--light2);font-family:sans-serif;}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- MODAL EDIT -->
+<div id="modal-ov">
+  <div id="modal-box">
+    <h3>Modifier le dossier</h3>
+    <div class="grid-2">
+      <div class="fg"><label>Coopérative <span class="req">*</span></label><input id="e-coop"/></div>
+      <div class="fg"><label>Contact</label><input id="e-contact"/></div>
+      <div class="fg"><label>Email</label><input id="e-email" type="email"/></div>
+      <div class="fg"><label>Date</label><input id="e-date" type="date"/></div>
+      <div class="fg"><label>Produit</label><select id="e-produit"><option value="">—</option></select></div>
+      <div class="fg"><label>Marché</label><select id="e-marche"><option value="">—</option></select></div>
+      <div class="fg"><label>Valeur estimée</label><input id="e-valeur"/></div>
+      <div class="fg"><label>Statut</label><select id="e-statut"><option value="">—</option></select></div>
+      <div class="fg"><label>Incoterm</label><select id="e-incoterm"><option value="">—</option></select></div>
+      <div class="fg"><label>Transport</label><select id="e-transport"><option value="">—</option></select></div>
+    </div>
+    <div class="fg"><label>Notes</label><textarea id="e-notes"></textarea></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn bo" onclick="closeModal()">Annuler</button>
+      <button class="btn bg" onclick="saveEdit()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="name">TERROIR</div>
+    <div class="sub">Export</div>
+    <div class="desc">Plateforme de gestion</div>
+  </div>
+  <div class="nav-links">
+    <button class="nav-btn active" onclick="goTo('dashboard')" id="btn-dashboard"><span>◈</span> Tableau de bord</button>
+    <button class="nav-btn" onclick="goTo('dossiers')" id="btn-dossiers"><span>⊟</span> Dossiers export <span class="nav-badge" id="nb"></span></button>
+    <button class="nav-btn" onclick="goTo('nouveau')" id="btn-nouveau"><span>⊕</span> Nouveau dossier</button>
+    <button class="nav-btn" onclick="goTo('suivi')" id="btn-suivi"><span>◎</span> Suivi &amp; étapes</button>
+    <button class="nav-btn" onclick="goTo('docs')" id="btn-docs"><span>▤</span> Documents</button>
+    <button class="nav-btn" onclick="goTo('marches')" id="btn-marches"><span>⊕</span> Marchés cibles</button>
+  </div>
+  <div class="sidebar-footer"><p id="sf">4 dossiers actifs<br/>Master RCI — 2026</p></div>
+</nav>
+
+<!-- MAIN -->
+<main id="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-title">Tableau de bord</div>
+    <div class="page-sub">Vue d'ensemble de vos dossiers export Terroir Export</div>
+    <div class="grid-5" id="stats-grid" style="margin-bottom:2rem;"></div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;">
+      <div class="card">
+        <div style="padding:.85rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <h3 style="font-size:1rem;font-weight:700;color:var(--dark);">Dossiers récents</h3>
+          <button class="btn bo bsm" onclick="goTo('dossiers')">Voir tous →</button>
+        </div>
+        <div style="overflow:hidden;border-radius:0 0 8px 8px;">
+          <table><thead><tr><th>Coopérative</th><th>Produit</th><th>Marché</th><th>Progression</th><th>Statut</th></tr></thead>
+          <tbody id="rec-tb"></tbody></table>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="card card-body" id="marche-chart"></div>
+        <div style="background:var(--deep);border-radius:8px;padding:1.2rem;">
+          <h3 style="font-size:.95rem;color:#FAF7F2;margin-bottom:1rem;font-family:sans-serif;">Actions rapides</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button onclick="goTo('nouveau')" style="background:rgba(250,247,242,.08);border:1px solid rgba(250,247,242,.15);color:rgba(250,247,242,.85);padding:.55rem .9rem;font-family:sans-serif;font-size:.82rem;text-align:left;border-radius:4px;cursor:pointer;">⊕ Nouveau dossier</button>
+            <button onclick="goTo('suivi')" style="background:rgba(250,247,242,.08);border:1px solid rgba(250,247,242,.15);color:rgba(250,247,242,.85);padding:.55rem .9rem;font-family:sans-serif;font-size:.82rem;text-align:left;border-radius:4px;cursor:pointer;">◎ Suivi des étapes</button>
+            <button onclick="goTo('docs')" style="background:rgba(250,247,242,.08);border:1px solid rgba(250,247,242,.15);color:rgba(250,247,242,.85);padding:.55rem .9rem;font-family:sans-serif;font-size:.82rem;text-align:left;border-radius:4px;cursor:pointer;">▤ Documents requis</button>
+            <button onclick="goTo('marches')" style="background:rgba(250,247,242,.08);border:1px solid rgba(250,247,242,.15);color:rgba(250,247,242,.85);padding:.55rem .9rem;font-family:sans-serif;font-size:.82rem;text-align:left;border-radius:4px;cursor:pointer;">⊕ Marchés cibles</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOSSIERS -->
+  <div class="page" id="page-dossiers">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <div><div class="page-title">Dossiers export</div><div class="page-sub" id="dos-count"></div></div>
+      <button class="btn bg" onclick="goTo('nouveau')">⊕ Nouveau dossier</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap;">
+      <input id="s-search" placeholder="🔍  Rechercher coopérative, produit, marché…" oninput="renderDos()"
+        style="flex:1;min-width:220px;padding:.55rem 1rem;border:1px solid var(--border);border-radius:6px;font-size:.85rem;font-family:sans-serif;outline:none;"/>
+      <select id="s-stat" onchange="renderDos()" style="padding:.55rem .8rem;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:sans-serif;"><option value="">Tous les statuts</option></select>
+      <select id="s-marc" onchange="renderDos()" style="padding:.55rem .8rem;border:1px solid var(--border);border-radius:6px;font-size:.83rem;font-family:sans-serif;"><option value="">Tous les marchés</option></select>
+      <button class="btn bo bsm" onclick="clearF()">✕ Réinitialiser</button>
+    </div>
+    <div style="display:grid;gap:1.5rem;" id="dos-layout">
+      <div class="card" style="overflow:hidden;">
+        <table><thead><tr><th>Coopérative</th><th>Produit</th><th>Marché</th><th>Valeur</th><th>Progression</th><th>Statut</th><th>Actions</th></tr></thead>
+        <tbody id="dos-tb"></tbody></table>
+      </div>
+    </div>
+    <div id="det-panel">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.2rem;">
+        <h3 id="det-title" style="font-size:1.1rem;font-weight:700;color:var(--dark);max-width:240px;"></h3>
+        <button onclick="closeDet()" style="background:none;border:none;cursor:pointer;color:var(--light2);font-size:1.3rem;">×</button>
+      </div>
+      <div id="det-prog" style="background:var(--sand);border-radius:6px;padding:1rem;margin-bottom:1.2rem;"></div>
+      <div id="det-fields"></div>
+      <div id="det-notes"></div>
+      <div id="det-actions" style="display:flex;gap:8px;margin-top:1.2rem;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+
+  <!-- NOUVEAU -->
+  <div class="page" id="page-nouveau">
+    <div class="page-title">Nouveau dossier export</div>
+    <div class="page-sub">Remplissez les informations de la coopérative et de son produit</div>
+    <div id="n-succ" class="succ" style="display:none;"><div class="si">✅</div><h3>Dossier créé avec succès !</h3><p>Redirection vers la liste…</p></div>
+    <div id="n-form">
+      <div class="grid-2" style="margin-bottom:1.2rem;">
+        <div class="card card-body">
+          <div class="sec-tag" style="border-bottom:2px solid var(--mid);padding-bottom:.5rem;margin-bottom:1.2rem;">Informations coopérative</div>
+          <div class="fg"><label>Nom de la coopérative <span class="req">*</span></label><input id="n-coop" placeholder="ex: Coopérative Argane Tizlit"/><div class="ferr" id="er-coop"></div></div>
+          <div class="fg"><label>Contact principal</label><input id="n-contact" placeholder="Nom du responsable"/></div>
+          <div class="fg"><label>Email</label><input id="n-email" type="email" placeholder="contact@coop.ma"/></div>
+          <div class="fg"><label>Date d'ouverture</label><input id="n-date" type="date"/></div>
+        </div>
+        <div class="card card-body">
+          <div class="sec-tag" style="border-bottom:2px solid var(--mid);padding-bottom:.5rem;margin-bottom:1.2rem;">Produit &amp; marché</div>
+          <div class="fg"><label>Produit à exporter <span class="req">*</span></label><select id="n-produit"><option value="">— Choisir —</option></select><div class="ferr" id="er-prod"></div></div>
+          <div class="fg"><label>Marché cible <span class="req">*</span></label><select id="n-marche"><option value="">— Choisir —</option></select><div class="ferr" id="er-marc"></div></div>
+          <div class="fg"><label>Valeur estimée</label><input id="n-valeur" placeholder="ex: 50 000 MAD"/></div>
+          <div class="grid-2">
+            <div class="fg"><label>Incoterm</label><select id="n-inco"><option value="">—</option></select></div>
+            <div class="fg"><label>Transport</label><select id="n-trans"><option value="">—</option></select></div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-body">
+        <div class="sec-tag" style="border-bottom:2px solid var(--mid);padding-bottom:.5rem;margin-bottom:1.2rem;">Notes &amp; observations</div>
+        <div class="fg"><label>Notes internes</label><textarea id="n-notes" placeholder="Observations, points d'attention…"></textarea></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button class="btn bo" onclick="resetF()">Réinitialiser</button>
+          <button class="btn bg" onclick="submitF()">Créer le dossier →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUIVI -->
+  <div class="page" id="page-suivi">
+    <div class="page-title">Suivi &amp; étapes</div>
+    <div class="page-sub">Avancement de chaque dossier dans le parcours Terroir Export</div>
+    <div class="grid-4" id="suivi-stats" style="margin-bottom:2rem;"></div>
+    <div id="suivi-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+  </div>
+
+  <!-- DOCS -->
+  <div class="page" id="page-docs">
+    <div class="page-title">Documents requis</div>
+    <div class="page-sub">Liste de contrôle des documents nécessaires par étape</div>
+    <div id="docs-prog" style="background:var(--sand);border-radius:8px;padding:1rem 1.5rem;margin-bottom:2rem;display:flex;align-items:center;gap:1.5rem;"></div>
+    <div class="grid-2" id="docs-grid"></div>
+  </div>
+
+  <!-- MARCHÉS -->
+  <div class="page" id="page-marches">
+    <div class="page-title">Marchés cibles</div>
+    <div class="page-sub">Analyse des marchés prioritaires pour l'export des coopératives marocaines</div>
+    <div class="grid-3" id="marches-grid" style="margin-top:1rem;"></div>
+  </div>
+
+</main>
+
+<script>
+const ETAPES=["Analyse produit","Choix marché","Logistique","Export final"];
+const STATUTS=["Analyse","En cours","Logistique","Exporté","Suspendu"];
+const MARCHES=["France","Allemagne","Espagne","Italie","Canada","Japon","USA","Émirats","Pays-Bas"];
+const INCOTERMS=["EXW","FOB","CIF","DDP","DAP","FCA"];
+const TRANSPORTS=["Maritime","Aérien","Routier","Multimodal"];
+const PRODUITS=["Huile d'argan bio","Tapis berbères","Miel de thym","Safran IGP","Céramique","Maroquinerie","Rose de Dades","Plantes médicinales"];
+const SC={"Analyse":"b-analyse","En cours":"b-encours","Logistique":"b-logistique","Exporté":"b-exporte","Suspendu":"b-suspendu"};
+const MARCHE_DATA=[
+  {pays:"France",flag:"🇫🇷",dem:"Très forte",prods:["Huile d'argan","Safran","Plantes"],inco:"CIF Le Havre",note:"Norme bio EU obligatoire",c:"#1a5fa8"},
+  {pays:"Allemagne",flag:"🇩🇪",dem:"Forte",prods:["Tapis","Céramique","Maroquinerie"],inco:"DAP Berlin",note:"Certification REACH textiles",c:"#6f42c1"},
+  {pays:"Japon",flag:"🇯🇵",dem:"Croissante",prods:["Safran IGP","Argan","Miel"],inco:"CIF Tokyo",note:"Inspection phytosanitaire stricte",c:"#C05030"},
+  {pays:"Canada",flag:"🇨🇦",dem:"Forte",prods:["Miel","Plantes","Argan"],inco:"DDP Montréal",note:"CFIA pour produits alimentaires",c:"#C9973A"},
+  {pays:"Émirats",flag:"🇦🇪",dem:"Très forte",prods:["Artisanat","Céramique","Tapis"],inco:"FOB Casablanca",note:"Halal certification recommandée",c:"#28a745"},
+  {pays:"USA",flag:"🇺🇸",dem:"Croissante",prods:["Argan cosmétique","Safran"],inco:"CIF New York",note:"FDA approval requis",c:"#dc3545"},
+];
+const DOCS_DATA=[
+  {etape:"Étape 1 — Analyse produit",items:["Fiche produit complète","Certificat de qualité / bio","Capacité de production annuelle","Statuts de la coopérative"]},
+  {etape:"Étape 2 — Choix du marché",items:["Étude de marché cible","Contrat d'agent ou distributeur","Analyse des Incoterms retenus","Fiche pays (réglementation)"]},
+  {etape:"Étape 3 — Logistique",items:["Déclaration d'exportation (DUM)","Certificat d'origine","Facture commerciale","Liste de colisage (Packing list)","Connaissement (BL) ou LTA"]},
+  {etape:"Étape 4 — Export final",items:["Lettre de crédit ou virement","Bon de livraison signé","Rapport de réception client","Facture finale & attestation paiement"]},
+];
+let dossiers=[
+  {id:1,coop:"Coopérative Argane Tizlit",produit:"Huile d'argan bio",marche:"France",statut:"En cours",etape:2,date:"2026-03-10",valeur:"48 000 MAD",incoterm:"CIF",transport:"Maritime",contact:"Fatima Aït Hassan",email:"fatima@argane-tizlit.ma",notes:"Certificat bio en attente"},
+  {id:2,coop:"Tissages Aït Benhaddou",produit:"Tapis berbères",marche:"Allemagne",statut:"Analyse",etape:0,date:"2026-04-01",valeur:"22 500 MAD",incoterm:"FOB",transport:"Aérien",contact:"Youssef Ouaziz",email:"y.ouaziz@tissages.ma",notes:""},
+  {id:3,coop:"Miel Atlas Premium",produit:"Miel de thym",marche:"Canada",statut:"Exporté",etape:3,date:"2026-02-15",valeur:"67 200 MAD",incoterm:"DDP",transport:"Aérien",contact:"Rachid Berrada",email:"r.berrada@mielatlas.ma",notes:"Livraison confirmée"},
+  {id:4,coop:"Safran Taliouine",produit:"Safran IGP",marche:"Japon",statut:"Logistique",etape:2,date:"2026-03-28",valeur:"95 000 MAD",incoterm:"CIF",transport:"Maritime",contact:"Khadija Ouzine",email:"k.ouzine@safrantaliouine.ma",notes:"Inspection douanière planifiée"},
+];
+let selId=null,editId=null;
+const docCk={};
+const marcheOpen={};
+
+function bdg(s){return `<span class="badge ${SC[s]||'b-analyse'}">${s}</span>`;}
+function prog(e){return `<div class="prog-wrap">${ETAPES.map((_,i)=>`<div class="prog-seg ${i<=e?'on':''}"></div>`).join('')}</div>`;}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
+function trunc(s,n){return s&&s.length>n?s.slice(0,n)+'…':s;}
+function addOpts(id,arr){const s=document.getElementById(id);if(!s)return;arr.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});}
+
+function init(){
+  addOpts('s-stat',STATUTS);addOpts('s-marc',MARCHES);
+  ['e-produit','n-produit'].forEach(id=>addOpts(id,PRODUITS));
+  ['e-marche','n-marche'].forEach(id=>addOpts(id,MARCHES));
+  addOpts('e-statut',STATUTS);
+  ['e-incoterm','n-inco'].forEach(id=>addOpts(id,INCOTERMS));
+  ['e-transport','n-trans'].forEach(id=>addOpts(id,TRANSPORTS));
+  document.getElementById('n-date').value=new Date().toISOString().slice(0,10);
+  renderAll();
+}
+
+function renderAll(){rDash();renderDos();renderSuivi();renderDocs();renderMarches();updateSB();}
+
+function updateSB(){
+  const u=dossiers.filter(d=>d.statut==='Suspendu').length;
+  const nb=document.getElementById('nb');
+  if(u>0){nb.style.display='';nb.textContent=u;}else nb.style.display='none';
+  document.getElementById('sf').innerHTML=`${dossiers.length} dossiers actifs<br/>Master RCI — 2026`;
+}
+
+function goTo(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('btn-'+id).classList.add('active');
+  if(id==='dossiers')renderDos();
+  if(id==='dashboard')rDash();
+  if(id==='suivi')renderSuivi();
+  if(id==='docs')renderDocs();
+  if(id==='marches')renderMarches();
+}
+
+function rDash(){
+  const tot=dossiers.length;
+  const exp=dossiers.filter(d=>d.statut==='Exporté').length;
+  const enc=dossiers.filter(d=>['En cours','Logistique'].includes(d.statut)).length;
+  const val=dossiers.reduce((s,d)=>s+parseInt((d.valeur||'0').replace(/\D/g,'')),0);
+  const mu=[...new Set(dossiers.map(d=>d.marche))].length;
+  const stats=[
+    {v:tot,l:'Dossiers totaux',h:'coopératives',c:'var(--mid)'},
+    {v:exp,l:'Exportés',h:'livraisons confirmées',c:'#28a745'},
+    {v:enc,l:'En traitement',h:'en cours / logistique',c:'var(--gold)'},
+    {v:val.toLocaleString('fr')+' MAD',l:'Valeur totale',h:'estimé',c:'var(--blue)'},
+    {v:mu,l:'Marchés actifs',h:'pays ciblés',c:'#6f42c1'},
+  ];
+  document.getElementById('stats-grid').innerHTML=stats.map(s=>`<div class="stat-card" style="border-top:3px solid ${s.c}"><span class="stat-val" style="color:${s.c}">${s.v}</span><div class="stat-lbl">${s.l}</div><div class="stat-hint">${s.h}</div></div>`).join('');
+  const rec=[...dossiers].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  document.getElementById('rec-tb').innerHTML=rec.map(d=>`<tr onclick="goTo('dossiers');selDos(${d.id})"><td class="td-main">${trunc(d.coop,22)}</td><td>${d.produit}</td><td>${d.marche}</td><td style="width:120px">${prog(d.etape)}</td><td>${bdg(d.statut)}</td></tr>`).join('');
+  const byM=dossiers.reduce((a,d)=>{a[d.marche]=(a[d.marche]||0)+1;return a;},{});
+  document.getElementById('marche-chart').innerHTML=`<div style="font-size:.88rem;font-weight:600;color:var(--dark);margin-bottom:1rem;font-family:sans-serif;">Répartition par marché</div>`+Object.entries(byM).sort((a,b)=>b[1]-a[1]).map(([m,n])=>`<div class="bar-row"><div class="bar-info"><span>${m}</span><span style="font-weight:600;color:var(--dark)">${n}</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/tot*100)}%"></div></div></div>`).join('');
+}
+
+function getFilt(){
+  const q=(document.getElementById('s-search').value||'').toLowerCase();
+  const fs=document.getElementById('s-stat').value;
+  const fm=document.getElementById('s-marc').value;
+  return dossiers.filter(d=>(!q||d.coop.toLowerCase().includes(q)||d.produit.toLowerCase().includes(q)||(d.marche||'').toLowerCase().includes(q))&&(!fs||d.statut===fs)&&(!fm||d.marche===fm));
+}
+function clearF(){document.getElementById('s-search').value='';document.getElementById('s-stat').value='';document.getElementById('s-marc').value='';renderDos();}
+
+function renderDos(){
+  const f=getFilt();
+  document.getElementById('dos-count').textContent=`${f.length} dossier${f.length>1?'s':''} trouvé${f.length>1?'s':''}`;
+  const lay=document.getElementById('dos-layout');
+  lay.style.gridTemplateColumns=selId?'1fr 380px':'1fr';
+  document.getElementById('det-panel').className=selId?'open':'';
+  document.getElementById('dos-tb').innerHTML=f.length===0
+    ?`<tr><td colspan="7" style="padding:2rem;text-align:center;color:var(--light2);font-family:sans-serif">Aucun dossier trouvé</td></tr>`
+    :f.map(d=>`<tr class="${selId===d.id?'sel':''}" onclick="selDos(${d.id})" style="border-left:3px solid ${selId===d.id?'var(--light)':'transparent'}">
+      <td><div class="td-main">${trunc(d.coop,24)}</div><div class="td-sub">${d.date}</div></td>
+      <td>${d.produit}</td><td>${d.marche}</td>
+      <td style="font-weight:600">${d.valeur||'—'}</td>
+      <td style="width:130px">${prog(d.etape)}<div style="font-size:.68rem;color:var(--light2);margin-top:3px;font-family:sans-serif">${ETAPES[d.etape]}</div></td>
+      <td>${bdg(d.statut)}</td>
+      <td onclick="event.stopPropagation()"><div style="display:flex;gap:4px;"><button class="btn bo bsm" onclick="openEdit(${d.id})">✎</button><button class="btn bd bsm" onclick="delDos(${d.id})">✕</button></div></td>
+    </tr>`).join('');
+  if(selId){const d=dossiers.find(x=>x.id===selId);if(!d){closeDet();return;}renderDet(d);}
+}
+
+function selDos(id){selId=selId===id?null:id;renderDos();}
+function closeDet(){selId=null;renderDos();}
+
+function renderDet(d){
+  document.getElementById('det-title').textContent=d.coop;
+  document.getElementById('det-prog').innerHTML=`<div style="font-size:.72rem;color:var(--light2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;font-family:sans-serif">Progression</div>${prog(d.etape)}<div style="display:flex;justify-content:space-between;margin-top:6px;">${ETAPES.map((e,i)=>`<span style="font-size:.62rem;color:${i<=d.etape?'var(--mid)':'var(--light2)'};font-weight:${i===d.etape?700:400};font-family:sans-serif">${e.split(' ')[0]}</span>`).join('')}</div>`;
+  const flds=[['Produit',d.produit],['Marché',d.marche],['Valeur',d.valeur],['Incoterm',d.incoterm],['Transport',d.transport],['Date',d.date],['Contact',d.contact],['Email',d.email]];
+  document.getElementById('det-fields').innerHTML=flds.filter(([,v])=>v).map(([k,v])=>`<div class="det-row"><span class="det-lbl">${k}</span><span class="det-val">${v}</span></div>`).join('');
+  document.getElementById('det-notes').innerHTML=d.notes?`<div style="background:var(--coralL);border-radius:4px;padding:.75rem;margin-top:1rem;font-size:.82rem;color:var(--coral);font-family:sans-serif">📌 ${d.notes}</div>`:'';
+  document.getElementById('det-actions').innerHTML=`<button class="btn bg bsm" onclick="advStep(${d.id})" ${d.etape>=3?'disabled':''}>${d.etape>=3?'✓ Exporté':'→ Étape suivante'}</button><button class="btn bo bsm" onclick="openEdit(${d.id})">Modifier</button><button class="btn bd bsm" onclick="delDos(${d.id})">Supprimer</button>`;
+}
+
+function advStep(id){
+  const d=dossiers.find(x=>x.id===id);if(!d||d.etape>=3)return;
+  d.etape++;d.statut=["Analyse","En cours","Logistique","Exporté"][d.etape];
+  toast('✓ Avancé à : '+ETAPES[d.etape]);renderAll();
+}
+function delDos(id){
+  if(!confirm('Supprimer ce dossier ?'))return;
+  dossiers=dossiers.filter(d=>d.id!==id);if(selId===id)selId=null;
+  toast('Dossier supprimé');renderAll();
+}
+
+function openEdit(id){
+  const d=dossiers.find(x=>x.id===id);if(!d)return;editId=id;
+  ['coop','contact','email','date','valeur','notes'].forEach(k=>{const el=document.getElementById('e-'+k);if(el)el.value=d[k]||'';});
+  ['produit','marche','statut','incoterm','transport'].forEach(k=>{const el=document.getElementById('e-'+k);if(el)el.value=d[k]||'';});
+  document.getElementById('modal-ov').classList.add('open');
+}
+function closeModal(){document.getElementById('modal-ov').classList.remove('open');editId=null;}
+function saveEdit(){
+  const d=dossiers.find(x=>x.id===editId);if(!d)return;
+  if(!document.getElementById('e-coop').value.trim()){alert('Nom coopérative requis');return;}
+  ['coop','contact','email','date','valeur','notes'].forEach(k=>{d[k]=document.getElementById('e-'+k).value;});
+  ['produit','marche','statut','incoterm','transport'].forEach(k=>{d[k]=document.getElementById('e-'+k).value;});
+  closeModal();toast('✓ Dossier mis à jour');renderAll();
+}
+
+function resetF(){
+  ['coop','contact','email','valeur','notes'].forEach(id=>document.getElementById('n-'+id).value='');
+  ['produit','marche'].forEach(id=>document.getElementById('n-'+id).value='');
+  document.getElementById('n-inco').value='';document.getElementById('n-trans').value='';
+  document.getElementById('n-date').value=new Date().toISOString().slice(0,10);
+  ['coop','prod','marc'].forEach(k=>document.getElementById('er-'+k).textContent='');
+}
+function submitF(){
+  let ok=true;
+  [['coop','er-coop'],['produit','er-prod'],['marche','er-marc']].forEach(([fid,eid])=>{
+    const v=document.getElementById('n-'+fid).value.trim();
+    document.getElementById(eid).textContent=v?'':'Champ requis';if(!v)ok=false;
+  });
+  if(!ok)return;
+  dossiers.push({id:Date.now(),coop:document.getElementById('n-coop').value,contact:document.getElementById('n-contact').value,email:document.getElementById('n-email').value,date:document.getElementById('n-date').value,produit:document.getElementById('n-produit').value,marche:document.getElementById('n-marche').value,valeur:document.getElementById('n-valeur').value,incoterm:document.getElementById('n-inco').value,transport:document.getElementById('n-trans').value,notes:document.getElementById('n-notes').value,statut:'Analyse',etape:0});
+  document.getElementById('n-form').style.display='none';
+  document.getElementById('n-succ').style.display='block';
+  renderAll();
+  setTimeout(()=>{document.getElementById('n-succ').style.display='none';document.getElementById('n-form').style.display='block';resetF();goTo('dossiers');},1800);
+}
+
+function renderSuivi(){
+  const cols=['var(--blue)','var(--gold)','var(--warn)','var(--light)'];
+  document.getElementById('suivi-stats').innerHTML=ETAPES.map((e,i)=>`<div class="stat-card" style="border-top:3px solid ${cols[i]}"><span class="stat-val" style="color:${cols[i]}">${dossiers.filter(d=>d.etape===i).length}</span><div class="stat-lbl">Étape ${i+1}</div><div class="stat-hint">${e}</div></div>`).join('');
+  document.getElementById('suivi-list').innerHTML=dossiers.map(d=>`<div class="card" style="padding:1.2rem 1.5rem;"><div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;"><div style="flex:1;min-width:180px;"><div style="font-size:.88rem;font-weight:600;color:var(--dark);font-family:sans-serif">${d.coop}</div><div style="font-size:.75rem;color:var(--light2);font-family:sans-serif">${d.produit} → ${d.marche}</div></div><div style="flex:2;min-width:240px;"><div class="step-bar">${ETAPES.map((e,i)=>`<div class="ss ${i<d.etape?'sdone':i===d.etape?'scur':'sfut'}">${i<d.etape?'✓ ':''}${e.split(' ')[0]}</div>`).join('')}</div></div><div style="display:flex;align-items:center;gap:10px;">${bdg(d.statut)}<button class="btn bg bsm" onclick="advStep(${d.id})" ${d.etape>=3?'disabled':''}>${d.etape>=3?'Terminé ✓':'→ Suivant'}</button></div></div></div>`).join('');
+}
+
+function renderDocs(){
+  let tot=0,done=0;
+  DOCS_DATA.forEach(s=>s.items.forEach(item=>{tot++;if(docCk[item])done++;}));
+  const pct=tot?Math.round(done/tot*100):0;
+  document.getElementById('docs-prog').innerHTML=`<div><span style="font-size:1.6rem;font-weight:700;color:var(--mid);font-family:Georgia,serif">${done}/${tot}</span><span style="font-size:.82rem;color:var(--light2);margin-left:6px;font-family:sans-serif">documents cochés</span></div><div style="flex:1;background:rgba(0,0,0,.08);border-radius:4px;height:8px;"><div style="background:var(--light);height:8px;border-radius:4px;width:${pct}%;transition:width .4s"></div></div><span style="font-size:.85rem;font-weight:600;color:var(--mid);font-family:sans-serif">${pct}%</span>`;
+  document.getElementById('docs-grid').innerHTML=DOCS_DATA.map(s=>`<div class="card" style="overflow:hidden;"><div style="background:var(--deep);padding:.75rem 1.2rem;"><h3 style="font-size:.85rem;font-weight:600;color:#FAF7F2;font-family:sans-serif;letter-spacing:.5px">${s.etape}</h3></div><div style="padding:1rem 1.2rem;">${s.items.map(item=>`<div class="ci ${docCk[item]?'ck':''}" onclick="togDoc('${item.replace(/'/g,"\\'").replace(/&/g,'&amp;')}')"><input type="checkbox" ${docCk[item]?'checked':''} onclick="event.stopPropagation();togDoc('${item.replace(/'/g,"\\'").replace(/&/g,'&amp;')}')"/><span>${item}</span></div>`).join('')}</div></div>`).join('');
+}
+function togDoc(item){docCk[item]=!docCk[item];renderDocs();}
+
+function renderMarches(){
+  document.getElementById('marches-grid').innerHTML=MARCHE_DATA.map(m=>`<div class="mc ${marcheOpen[m.pays]?'mopen':''}" onclick="togMarche('${m.pays}')" style="border-color:${marcheOpen[m.pays]?m.c:'var(--border)'}"><div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;"><span style="font-size:1.8rem">${m.flag}</span><div><div style="font-size:1.1rem;font-weight:700;color:var(--dark)">${m.pays}</div><div style="font-size:.72rem;color:${m.c};font-weight:500;font-family:sans-serif">${m.dem}</div></div></div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:.8rem;">${m.prods.map(p=>`<span style="background:var(--sand);color:var(--mid);padding:2px 8px;border-radius:12px;font-size:.7rem;font-family:sans-serif">${p}</span>`).join('')}</div><div class="mdet"><div style="font-size:.8rem;color:var(--light2);margin-bottom:4px;font-family:sans-serif">Incoterm recommandé</div><div style="font-size:.85rem;font-weight:600;color:var(--dark);margin-bottom:8px;font-family:sans-serif">${m.inco}</div><div style="background:var(--warnL);border-radius:4px;padding:.6rem .8rem;font-size:.78rem;color:var(--warn);font-family:sans-serif">⚠ ${m.note}</div></div><div style="text-align:right;margin-top:8px;font-size:.72rem;color:var(--light2);font-family:sans-serif">${marcheOpen[m.pays]?'▲ Fermer':'▼ Détails'}</div></div>`).join('');
+}
+function togMarche(p){marcheOpen[p]=!marcheOpen[p];renderMarches();}
+
+init();
+</script>
+</body>
+</html>
